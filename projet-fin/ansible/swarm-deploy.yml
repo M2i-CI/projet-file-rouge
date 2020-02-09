@@ -1,0 +1,32 @@
+- hosts: cibles
+  remote_user: vagrant
+  become: yes
+  tasks:
+  - name: Latest container is pulled
+    shell: docker pull 192.168.33.101:5000/tomcat-deploy
+
+- hosts: localhost
+  remote_user: vagrant
+  become: yes
+  tasks:
+  
+  - name: Check if service exists
+    shell: docker service ls --filter name=tomcat | grep '\s tomcat \s' | awk '{ print $1 }'
+    register: service_exists
+    changed_when: false
+  
+  - name: Create service tomcat
+    shell: |
+      docker service create \
+      --name tomcat \
+      --replicas 3 \
+      --publish 8000:8080 \
+      --update-delay 10s \
+      --update-parallelism 2 \
+      --constraint 'node.role==worker' \
+      192.168.33.101:5000/tomcat-deploy
+    when: service_exists.stdout == ""
+
+  - name: Update service if exists
+    shell: docker service update tomcat --image 192.168.33.101:5000/tomcat-deploy
+    when: service_exists.stdout != "" 

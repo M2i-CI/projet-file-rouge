@@ -1,0 +1,43 @@
+# Ansible role to install apache maven 3
+- name: Check If maven is already installed or not
+  shell: "mvn -version | grep -w 'Apache Maven' | awk '{print $3}'"
+  register: maven_installed
+  tags: [maven]
+
+- name: Installed maven version
+  debug: "msg={{maven_installed.stdout}}"
+  tags: [maven]
+- block:
+  - name: Download and Unarchive maven
+    unarchive:
+      src: https://www.apache.org/dist/maven/maven-3/3.5.3/binaries/apache-maven-3.5.3-bin.tar.gz
+      dest: /opt
+      remote_src : yes
+  - name: Create maven symlink to /usr/bin
+    file:
+      src: /opt/apache-maven-3.5.3/bin/mvn
+      dest: /usr/bin/mvn
+      state: link
+
+  - name: Configure maven and its environment variables
+    lineinfile:
+      dest: /etc/profile.d/maven.sh
+      line: "{{ item }}"
+      create: yes
+      state: present
+    with_items:
+      - M2_HOME=/opt/apache-maven-3.5.3
+      - PATH=$PATH:$M2_HOME/bin
+   
+  - name: Exports/Run maven env file for make M2_HOME available globally
+    shell: ". /etc/profile.d/maven.sh"
+
+  - name: Settings.xml to maven home
+    copy:
+      src: settings.xml
+      dest: /opt/apache-maven-3.5.3/conf
+      owner: 501
+      group: staff
+      mode: 0644
+  when: maven_installed.stdout == ""
+  tags: [maven]

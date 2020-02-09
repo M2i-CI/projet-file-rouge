@@ -1,0 +1,6 @@
+- hosts: cibles
+  remote_user: vagrant
+  become: yes
+  roles:
+    - docker
+    - tomcat

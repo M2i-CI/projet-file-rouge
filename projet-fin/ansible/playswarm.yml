@@ -1,0 +1,38 @@
+- hosts: localhost
+  remote_user: vagrant
+  become: yes
+  tasks:
+
+  - name: Get docker swarm info
+    shell: docker info
+    register: docker_info
+    changed_when: False
+ 
+  - name: Create leader swarm manager
+    shell: docker swarm init --advertise-addr {{ ansible_enp0s8['ipv4']['address'] }}
+    when: "docker_info.stdout.find('Swarm: inactive') != -1"
+
+  - name: get docker swarm manager token
+    shell: docker swarm join-token -q manager
+    register: manager_token
+
+  - name: get docker swarm worker token
+    shell: docker swarm join-token -q worker
+    register: worker_token
+
+- hosts: cibles
+  remote_user: vagrant
+  become: yes
+  roles:
+  - docker
+  tasks:
+  - name: Get docker swarm info
+    shell: docker info
+    register: docker_info
+    changed_when: False
+  
+  - name: Join as a worker
+    shell: docker swarm join --token {{ hostvars['localhost']['worker_token']['stdout'] }} {{ hostvars['localhost']['ansible_enp0s8']['ipv4']['address'] }}:2377
+    when: "docker_info.stdout.find('Swarm: inactive') != -1"
+    retries: 3
+    delay: 20

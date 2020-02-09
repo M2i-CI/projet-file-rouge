@@ -1,0 +1,16 @@
+---
+# tasks file for gitlab
+- name: Container gitlab
+  docker_container:
+    name: gitlab
+    image: gitlab/gitlab-ce
+#    state: present
+    ports:
+      - "9443:443"
+      - "9080:80"
+      - "9022:22"
+    volumes:
+      - "/data/gitlab/config:/etc/gitlab"
+      - "/data/gitlab/logs:/var/log/gitlab"
+      - "/data/gitlab/data:/var/opt/gitlab"
+  tags: [gitlab]

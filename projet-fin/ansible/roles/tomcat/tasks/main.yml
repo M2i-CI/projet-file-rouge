@@ -1,0 +1,25 @@
+
+#- name: Directory is present
+#  file:
+#    path=/data/books-service/db
+#    state=directory
+#  tags: [books-service]
+
+- name: Latest container is pulled
+  shell: docker pull 192.168.33.101:5000/tomcat-deploy
+  tags: [tomcat-deploy]
+
+- name: Container is absent
+  docker_container:
+    image=192.168.33.101:5000/tomcat-deploy
+    name=tomcat-deploy
+    state=absent
+  tags: [tomcat-deploy]
+
+- name: Container is running
+  docker_container:
+    name=tomcat-deploy
+    image=192.168.33.101:5000/tomcat-deploy
+    ports=8080:8080
+    state=started
+  tags: [tomcat-deploy]

@@ -1,0 +1,63 @@
+- name: Ensure dependencies are installed.
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - software-properties-common
+  tags: [docker]
+
+- name: Add docker apt key
+  shell: "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -"
+  tags: [docker]
+
+- name: Add Docker repository and update apt cache
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    update_cache: yes
+    state: present
+  tags: [docker]
+
+- name: Docker is present
+  apt:
+    name: docker-ce
+    state: latest
+    force: yes
+  tags: [docker]
+
+- name: check pip already installed
+  command: "pip --version"
+  ignore_errors: true
+  changed_when: false
+  check_mode: no
+  register: pip_is_installed
+
+- name: Python-pip script
+  script: get-pip.py
+  when: pip_is_installed.rc != 0
+  tags: [docker]
+
+- name: Debian docker-py is present
+  pip:
+    name: docker[tls]
+#    version: 1.10.1
+    state: present
+  tags: [docker]
+
+- name: Files are present
+  copy:
+    src: daemon.json
+    dest: /etc/docker
+  register: copy_result
+  tags: [docker]
+
+- name: Restart Docker.
+  service: name=docker state=restarted
+  when: copy_result|changed
+  tags: [docker]
+    
+- name: Allow vagrant user to run docker commands without sudo
+  user: name=vagrant append=yes groups=docker
+  tags: [docker]
